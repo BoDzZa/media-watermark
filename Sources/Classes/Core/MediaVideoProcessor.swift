@@ -10,7 +10,6 @@ import UIKit
 import AVFoundation
 
 let kMediaContentDefaultScale: CGFloat = 1
-let kProcessedTemporaryVideoFileName = "/processed.mov"
 let kMediaContentTimeValue: Int64 = 1
 let kMediaContentTimeScale: Int32 = 30
 
@@ -68,7 +67,15 @@ extension MediaProcessor {
         instruction.layerInstructions = [layerInstruction]
         videoComposition.instructions = [instruction]
         
-        let processedUrl = processedMoviePath()
+        var processedUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let assetName = UUID().uuidString + ".mp4"
+        
+        if let path = getFileURL(fileName: assetName) {
+            processedUrl = path
+        } else {
+            processedUrl = processedUrl.appendingPathComponent(assetName)
+        }
+        
         clearTemporaryData(url: processedUrl, completion: completion)
         
         let exportSession = AVAssetExportSession(asset: mixComposition, presetName: AVAssetExportPresetHighestQuality)
@@ -106,11 +113,6 @@ extension MediaProcessor {
         }
     }
     
-    private func processedMoviePath() -> URL {
-        let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] + kProcessedTemporaryVideoFileName
-        return URL(fileURLWithPath: documentsPath)
-    }
-    
     private func clearTemporaryData(url: URL, completion: ProcessCompletionHandler!) {
         if (FileManager.default.fileExists(atPath: url.path)) {
             do {
@@ -118,6 +120,16 @@ extension MediaProcessor {
             } catch {
                 completion(MediaProcessResult(processedUrl: nil, image: nil), error)
             }
+        }
+    }
+    
+    private func getFileURL(fileName: String) -> URL? {
+        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            
+        if FileManager.default.fileExists(atPath: URL(fileURLWithPath: directory.absoluteString).appendingPathComponent(fileName).path) {
+            return URL(fileURLWithPath: directory.absoluteString).appendingPathComponent(fileName)
+        } else {
+            return nil
         }
     }
     
